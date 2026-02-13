@@ -14,13 +14,17 @@ import {
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+} catch (error) {
+  console.error('Notification handler setup failed:', error);
+}
 
 const PRAYER_CONFIG = {
   Sabah: {
@@ -73,6 +77,13 @@ const scheduleNotificationSafe = async (input) => {
 };
 
 
+
+const isNotificationsApiAvailable = () => (
+  !!Notifications &&
+  typeof Notifications.getPermissionsAsync === 'function' &&
+  typeof Notifications.scheduleNotificationAsync === 'function'
+);
+
 const getTimeZoneSafe = () => {
   try {
     if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
@@ -100,6 +111,11 @@ export default function App() {
   const isSchedulingRef = useRef(false);
 
   const requestNotificationPermission = useCallback(async () => {
+    if (!isNotificationsApiAvailable()) {
+      setPermission('unavailable');
+      return 'denied';
+    }
+
     try {
       const settings = await Notifications.getPermissionsAsync();
       let current = settings.status;
@@ -174,7 +190,7 @@ export default function App() {
   }, [city, district]);
 
   const schedulePrayerNotifications = useCallback(async () => {
-    if (!prayerTimes || isSchedulingRef.current) return;
+    if (!prayerTimes || isSchedulingRef.current || !isNotificationsApiAvailable()) return;
 
     isSchedulingRef.current = true;
     try {
@@ -258,35 +274,37 @@ export default function App() {
   }, [prayerTimes, requestNotificationPermission]);
 
   useEffect(() => {
-    requestNotificationPermission();
-  }, [requestNotificationPermission]);
-
-  useEffect(() => {
     schedulePrayerNotifications();
   }, [schedulePrayerNotifications]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', async (next) => {
-      const wasBackground = /inactive|background/.test(appStateRef.current);
-      appStateRef.current = next;
-      if (wasBackground && next === 'active') {
-        const currentTz = getTimeZoneSafe();
-        if (currentTz !== timezone) {
-          setTimezone(currentTz);
-          setStatus('Saat dilimi değişti, bildirimler yeniden planlandı.');
-          await schedulePrayerNotifications();
-          return;
-        }
+      try {
+        const wasBackground = /inactive|background/.test(appStateRef.current);
+        appStateRef.current = next;
+        if (wasBackground && next === 'active') {
+          const currentTz = getTimeZoneSafe();
+          if (currentTz !== timezone) {
+            setTimezone(currentTz);
+            if (prayerTimes) {
+              setStatus('Saat dilimi değişti, bildirimler yeniden planlandı.');
+              await schedulePrayerNotifications();
+            }
+            return;
+          }
 
-        const today = new Date().toDateString();
-        if (lastSyncDateKey !== today) {
-          await fetchPrayerTimes();
+          const today = new Date().toDateString();
+          if (lastSyncDateKey !== today && city && district) {
+            await fetchPrayerTimes();
+          }
         }
+      } catch (error) {
+        console.error('AppState resume flow failed:', error);
       }
     });
 
     return () => sub.remove();
-  }, [fetchPrayerTimes, lastSyncDateKey, schedulePrayerNotifications, timezone]);
+  }, [fetchPrayerTimes, lastSyncDateKey, schedulePrayerNotifications, timezone, prayerTimes, city, district]);
 
   const prayerRows = useMemo(() => {
     if (!prayerTimes) return [];
