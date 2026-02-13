@@ -158,45 +158,75 @@ export default function App() {
       let scheduledCount = 0;
 
       for (const [name, config] of Object.entries(PRAYER_CONFIG)) {
-      const raw = prayerTimes[config.key];
-      const hm = normalizeHm(raw);
-      const prayerDate = toDateForToday(hm);
-      if (!prayerDate) continue;
+        const raw = prayerTimes[config.key];
+        const hm = normalizeHm(raw);
+        const prayerDate = toDateForToday(hm);
+        if (!prayerDate) continue;
 
-      const preDate = new Date(prayerDate.getTime() - 5 * 60 * 1000);
+        const preDate = new Date(prayerDate.getTime() - 5 * 60 * 1000);
 
-      if (preDate > now) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: `${name} Namazı Yaklaşıyor`,
-            body: '5 dakika sonra namaz vakti girecek.',
-            sound: 'default',
-          },
-          trigger: {
-            date: preDate,
-            channelId: 'prayer-reminders',
-          },
-        });
-        scheduledCount += 1;
+        if (preDate > now) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `${name} Namazı Yaklaşıyor`,
+              body: '5 dakika sonra namaz vakti girecek.',
+              sound: 'default',
+            },
+            trigger: {
+              date: preDate,
+              channelId: 'prayer-reminders',
+            },
+          });
+          scheduledCount += 1;
+        }
+
+        if (prayerDate > now) {
+          await Notifications.scheduleNotificationAsync({
+            content: {
+              title: `${name} Namazı Vakti 🕌`,
+              body: config.message,
+              sound: 'default',
+            },
+            trigger: {
+              date: prayerDate,
+              channelId: 'prayer-reminders',
+            },
+          });
+          scheduledCount += 1;
+        }
       }
 
-      if (prayerDate > now) {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: `${name} Namazı Vakti 🕌`,
-            body: config.message,
-            sound: 'default',
-          },
-          trigger: {
-            date: prayerDate,
-            channelId: 'prayer-reminders',
-          },
-        });
-        scheduledCount += 1;
-      }
-    }
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Günün Hadisi 🌙',
+          body: 'Günün hadisini okumayı unutmayın.',
+          sound: 'default',
+        },
+        trigger: {
+          hour: 9,
+          minute: 0,
+          repeats: true,
+          channelId: 'prayer-reminders',
+        },
+      });
+      scheduledCount += 1;
 
-      setStatus(`Bugünün namaz bildirimleri planlandı (${scheduledCount} adet).`);
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Günün Ayeti 🌿',
+          body: 'Günün ayetini tefekkür etmeyi unutmayın.',
+          sound: 'default',
+        },
+        trigger: {
+          hour: 18,
+          minute: 0,
+          repeats: true,
+          channelId: 'prayer-reminders',
+        },
+      });
+      scheduledCount += 1;
+
+      setStatus(`Bildirimler planlandı: ${scheduledCount} adet (5 vakit + 09:00 hadis + 18:00 ayet).`);
     } finally {
       isSchedulingRef.current = false;
     }
