@@ -21,9 +21,6 @@
       },
       "package": "com.buglemm.app"
     },
-    "web": {
-      "favicon": "./assets/web/logo.png"
-    },
     "extra": {
       "eas": {
         "projectId": "8dafb826-ffd6-405c-910c-176fc4bea910"

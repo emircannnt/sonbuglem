@@ -274,8 +274,8 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Buğlem Mobil - Namaz Bildirimleri</Text>
-        <Text style={styles.subtitle}>Web değil, mobil yerel bildirim akışı (Expo Notifications).</Text>
+        <Text style={styles.title}>Buğlem - Mobil Namaz Bildirimleri</Text>
+        <Text style={styles.subtitle}>Expo Notifications ile mobil yerel bildirim akışı.</Text>
 
         <TextInput value={city} onChangeText={setCity} placeholder="İl (örn: Istanbul)" style={styles.input} />
         <TextInput value={district} onChangeText={setDistrict} placeholder="İlçe (örn: Kadikoy)" style={styles.input} />
