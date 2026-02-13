@@ -13,3 +13,6 @@ Namaz vakitleri, Zikirmatik, Günlük Ayet & Hadis, Sadaka ve daha fazlası.
 
 ## Kurulum
 Proje HTML/JS/CSS tabanlıdır. Herhangi bir statik sunucuda (Netlify, Vercel, Github Pages) çalışır.
+
+## Kaynak Kod
+GitHub deposu: https://github.com/emircannnt/sonbuglem.git

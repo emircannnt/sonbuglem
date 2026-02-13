@@ -649,26 +649,43 @@ function checkNotifications() {
     }
 
     // Check Prayer Times
-    if (state.prayerTimes) {
+    if (state.settings.notifications && state.prayerTimes) {
         const currentHm = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        const prayers = {
-            'Sabah': state.prayerTimes.fajr,
-            'Öğle': state.prayerTimes.dhuhr,
-            'İkindi': state.prayerTimes.asr,
-            'Akşam': state.prayerTimes.maghrib,
-            'Yatsı': state.prayerTimes.isha
+        const normalizePrayerTime = (value) => {
+            const match = String(value || '').match(/(\d{1,2}:\d{2})/);
+            if (!match) return '--';
+            const [h, m] = match[1].split(':');
+            return `${String(h).padStart(2, '0')}:${m}`;
         };
 
-        // Unique key for THIS prayer time today
-        const lastPrayerKey = `lastPrayerNotif_${dateStr}_${currentHm}`;
+        const prayers = {
+            'Sabah': {
+                time: normalizePrayerTime(state.prayerTimes.fajr),
+                message: 'Namaz uykudan daha hayırlıdır!'
+            },
+            'Öğle': {
+                time: normalizePrayerTime(state.prayerTimes.dhuhr),
+                message: 'Bir kimse öğle namazının farzından önce dört, farzından sonra da dört rekat sünneti devamlı olarak kılarsa, Allah Teâlâ onu cehenneme haram kılar.'
+            },
+            'İkindi': {
+                time: normalizePrayerTime(state.prayerTimes.asr),
+                message: 'Güneş doğmadan ve batmadan önce namaz kılan bir kimse cehenneme girmeyecektir.'
+            },
+            'Akşam': {
+                time: normalizePrayerTime(state.prayerTimes.maghrib),
+                message: 'Ümmetim akşam namazını yıldız doğmadan önce kıldıkları sürece fıtrat üzere yaşamaya devam ederler.'
+            },
+            'Yatsı': {
+                time: normalizePrayerTime(state.prayerTimes.isha),
+                message: 'Yatsı namazını cemaatle kılan kimse, gece yarısına kadar namaz kılmış gibidir.'
+            }
+        };
 
-        // Only check if we haven't sent ANY prayer notification this minute to avoid duplicates if loop runs fast
-        // But loop runs generally once a minute. We need to check if we already notified for THIS time.
-
-        for (const [name, time] of Object.entries(prayers)) {
-            if (time === currentHm) {
+        for (const [name, prayer] of Object.entries(prayers)) {
+            if (prayer.time === currentHm) {
+                const lastPrayerKey = `lastPrayerNotif_${dateStr}_${name}_${prayer.time}`;
                 if (!localStorage.getItem(lastPrayerKey)) {
-                    sendNotification(`${name} Vakti Girdi 🕌`, "Haydi felaha! Namaz vakti girdi.");
+                    sendNotification(`${name} Namazı Vakti 🕌`, prayer.message);
                     localStorage.setItem(lastPrayerKey, 'sent');
                 }
             }
