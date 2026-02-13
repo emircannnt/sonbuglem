@@ -72,6 +72,18 @@ const scheduleNotificationSafe = async (input) => {
   }
 };
 
+
+const getTimeZoneSafe = () => {
+  try {
+    if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'local';
+    }
+  } catch (error) {
+    console.error('Timezone detection failed:', error);
+  }
+  return 'local';
+};
+
 export default function App() {
   const [city, setCity] = useState('Istanbul');
   const [district, setDistrict] = useState('Kadikoy');
@@ -81,7 +93,7 @@ export default function App() {
   const [lastSync, setLastSync] = useState('');
   const [lastSyncDateKey, setLastSyncDateKey] = useState('');
   const [status, setStatus] = useState('Konum girip vakitleri yükleyin.');
-  const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'local');
+  const [timezone, setTimezone] = useState(getTimeZoneSafe());
 
   const appStateRef = useRef(AppState.currentState);
   const hasShownPermissionAlertRef = useRef(false);
@@ -258,7 +270,7 @@ export default function App() {
       const wasBackground = /inactive|background/.test(appStateRef.current);
       appStateRef.current = next;
       if (wasBackground && next === 'active') {
-        const currentTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local';
+        const currentTz = getTimeZoneSafe();
         if (currentTz !== timezone) {
           setTimezone(currentTz);
           setStatus('Saat dilimi değişti, bildirimler yeniden planlandı.');
