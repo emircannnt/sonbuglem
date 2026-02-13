@@ -61,6 +61,17 @@ const toDateForToday = (hm) => {
   return date;
 };
 
+
+const scheduleNotificationSafe = async (input) => {
+  try {
+    await Notifications.scheduleNotificationAsync(input);
+    return true;
+  } catch (error) {
+    console.error('Notification schedule failed:', error);
+    return false;
+  }
+};
+
 export default function App() {
   const [city, setCity] = useState('Istanbul');
   const [district, setDistrict] = useState('Kadikoy');
@@ -77,31 +88,37 @@ export default function App() {
   const isSchedulingRef = useRef(false);
 
   const requestNotificationPermission = useCallback(async () => {
-    const settings = await Notifications.getPermissionsAsync();
-    let current = settings.status;
+    try {
+      const settings = await Notifications.getPermissionsAsync();
+      let current = settings.status;
 
-    if (current !== 'granted') {
-      const req = await Notifications.requestPermissionsAsync();
-      current = req.status;
+      if (current !== 'granted') {
+        const req = await Notifications.requestPermissionsAsync();
+        current = req.status;
+      }
+
+      setPermission(current);
+
+      if (current !== 'granted' && !hasShownPermissionAlertRef.current) {
+        hasShownPermissionAlertRef.current = true;
+        Alert.alert('Bildirim Kapalı', 'Namaz hatırlatmaları için bildirim izni vermeniz gerekir.');
+      }
+
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('prayer-reminders', {
+          name: 'Namaz Hatırlatmaları',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 200, 150, 200],
+          sound: 'default',
+        });
+      }
+
+      return current;
+    } catch (error) {
+      console.error('Permission check failed:', error);
+      setPermission('error');
+      return 'denied';
     }
-
-    setPermission(current);
-
-    if (current !== 'granted' && !hasShownPermissionAlertRef.current) {
-      hasShownPermissionAlertRef.current = true;
-      Alert.alert('Bildirim Kapalı', 'Namaz hatırlatmaları için bildirim izni vermeniz gerekir.');
-    }
-
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('prayer-reminders', {
-        name: 'Namaz Hatırlatmaları',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 200, 150, 200],
-        sound: 'default',
-      });
-    }
-
-    return current;
   }, []);
 
   const fetchPrayerTimes = useCallback(async () => {
@@ -166,67 +183,63 @@ export default function App() {
         const preDate = new Date(prayerDate.getTime() - 5 * 60 * 1000);
 
         if (preDate > now) {
-          await Notifications.scheduleNotificationAsync({
+          const ok = await scheduleNotificationSafe({
             content: {
               title: `${name} Namazı Yaklaşıyor`,
               body: '5 dakika sonra namaz vakti girecek.',
               sound: 'default',
-            },
-            trigger: {
-              date: preDate,
               channelId: 'prayer-reminders',
             },
+            trigger: preDate,
           });
-          scheduledCount += 1;
+          if (ok) scheduledCount += 1;
         }
 
         if (prayerDate > now) {
-          await Notifications.scheduleNotificationAsync({
+          const ok = await scheduleNotificationSafe({
             content: {
               title: `${name} Namazı Vakti 🕌`,
               body: config.message,
               sound: 'default',
-            },
-            trigger: {
-              date: prayerDate,
               channelId: 'prayer-reminders',
             },
+            trigger: prayerDate,
           });
-          scheduledCount += 1;
+          if (ok) scheduledCount += 1;
         }
       }
 
-      await Notifications.scheduleNotificationAsync({
+      const hadithOk = await scheduleNotificationSafe({
         content: {
           title: 'Günün Hadisi 🌙',
           body: 'Günün hadisini okumayı unutmayın.',
           sound: 'default',
+          channelId: 'prayer-reminders',
         },
         trigger: {
           hour: 9,
           minute: 0,
           repeats: true,
-          channelId: 'prayer-reminders',
         },
       });
-      scheduledCount += 1;
+      if (hadithOk) scheduledCount += 1;
 
-      await Notifications.scheduleNotificationAsync({
+      const ayahOk = await scheduleNotificationSafe({
         content: {
           title: 'Günün Ayeti 🌿',
           body: 'Günün ayetini tefekkür etmeyi unutmayın.',
           sound: 'default',
+          channelId: 'prayer-reminders',
         },
         trigger: {
           hour: 18,
           minute: 0,
           repeats: true,
-          channelId: 'prayer-reminders',
         },
       });
-      scheduledCount += 1;
+      if (ayahOk) scheduledCount += 1;
 
-      setStatus(`Bildirimler planlandı: ${scheduledCount} adet (5 vakit + 09:00 hadis + 18:00 ayet).`);
+      setStatus(`Bildirimler planlandı: ${scheduledCount} adet.`);
     } finally {
       isSchedulingRef.current = false;
     }
