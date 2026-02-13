@@ -10,6 +10,8 @@ const state = {
     zikirStats: {} // Map zikirId -> totalCount
 };
 
+let lastPrayerFetchDate = "";
+
 // --- INIT ---
 window.onload = function () {
     loadState();
@@ -190,6 +192,79 @@ function populateDistricts() {
     }
 }
 
+function normalizeTrText(text) {
+    return (text || '')
+        .toLocaleLowerCase('tr-TR')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function findBestCity(cityName) {
+    const cities = Object.keys(turkeyLocations || {});
+    const normalized = normalizeTrText(cityName);
+    return cities.find(c => normalizeTrText(c) === normalized)
+        || cities.find(c => normalizeTrText(c).includes(normalized) || normalized.includes(normalizeTrText(c)))
+        || '';
+}
+
+function findBestDistrict(city, districtName) {
+    const districts = (turkeyLocations && turkeyLocations[city]) || [];
+    const normalized = normalizeTrText(districtName);
+    return districts.find(d => normalizeTrText(d) === normalized)
+        || districts.find(d => normalizeTrText(d).includes(normalized) || normalized.includes(normalizeTrText(d)))
+        || '';
+}
+
+async function detectLocationAndFill() {
+    if (!navigator.geolocation) {
+        showToast('Bu cihazda konum servisi desteklenmiyor.');
+        return;
+    }
+
+    showToast('Konum alınıyor...');
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=tr`;
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const data = await res.json();
+            const addr = data.address || {};
+            const guessedCity = addr.city || addr.province || addr.state || addr.region || '';
+            const guessedDistrict = addr.town || addr.county || addr.suburb || addr.municipality || '';
+
+            const city = findBestCity(guessedCity);
+            if (!city) {
+                showToast('İl bulunamadı. Lütfen manuel seçiniz.');
+                return;
+            }
+
+            const citySelect = document.getElementById('citySelect');
+            const districtSelect = document.getElementById('districtSelect');
+            citySelect.value = city;
+            populateDistricts();
+
+            const district = findBestDistrict(city, guessedDistrict);
+            if (district) {
+                districtSelect.value = district;
+                showToast('Konum bulundu. Kaydet ile onaylayın.');
+            } else {
+                showToast('İl bulundu, ilçe manuel seçiniz.');
+            }
+        } catch (e) {
+            console.error('Reverse geocode error:', e);
+            showToast('Konum çözümlenemedi. Manuel seçim yapın.');
+        }
+    }, (error) => {
+        console.error('Geolocation error:', error);
+        showToast('Konum izni verilmedi veya alınamadı.');
+    }, {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+    });
+}
+
 function openLocationModal() {
     window.locationModal.classList.add('active');
 }
@@ -231,8 +306,51 @@ async function fetchPrayerTimes() {
             state.prayerTimes = { fajr: t.Fajr, dhuhr: t.Dhuhr, asr: t.Asr, maghrib: t.Maghrib, isha: t.Isha };
             saveState();
             renderPrayerTimes();
+            scheduleNativePrayerNotifications();
+            lastPrayerFetchDate = new Date().toDateString();
         }
     } catch (e) { console.error(e); showToast("Vakitler alınamadı."); }
+}
+
+function getPrayerNotificationMap() {
+    return {
+        'Sabah': {
+            time: state.prayerTimes.fajr,
+            message: 'Namaz uykudan daha hayırlıdır!'
+        },
+        'Öğle': {
+            time: state.prayerTimes.dhuhr,
+            message: 'Bir kimse öğle namazının farzından önce dört, farzından sonra da dört rekat sünneti devamlı olarak kılarsa, Allah Teâlâ onu cehenneme haram kılar.'
+        },
+        'İkindi': {
+            time: state.prayerTimes.asr,
+            message: 'Güneş doğmadan ve batmadan önce namaz kılan bir kimse cehenneme girmeyecektir.'
+        },
+        'Akşam': {
+            time: state.prayerTimes.maghrib,
+            message: 'Ümmetim akşam namazını yıldız doğmadan önce kıldıkları sürece fıtrat üzere yaşamaya devam ederler.'
+        },
+        'Yatsı': {
+            time: state.prayerTimes.isha,
+            message: 'Yatsı namazını cemaatle kılan kimse, gece yarısına kadar namaz kılmış gibidir.'
+        }
+    };
+}
+
+function scheduleNativePrayerNotifications() {
+    if (typeof window.ReactNativeWebView === 'undefined' || !state.prayerTimes) return;
+
+    const prayers = getPrayerNotificationMap();
+    const payload = {
+        type: 'schedulePrayerNotifications',
+        prayers: Object.entries(prayers).map(([name, config]) => ({
+            name,
+            time: config.time,
+            message: config.message
+        }))
+    };
+
+    window.ReactNativeWebView.postMessage(JSON.stringify(payload));
 }
 
 function renderPrayerTimes() {
@@ -610,24 +728,40 @@ function requestNotificationPermission() {
     }
 }
 
+function checkPrayerTimesRefresh() {
+    if (!state.location.city || !state.location.district) return;
+
+    const now = new Date();
+    const today = now.toDateString();
+
+    if (lastPrayerFetchDate !== today && now.getHours() >= 0 && now.getMinutes() >= 5) {
+        fetchPrayerTimes();
+    }
+}
+
 function startNotificationScheduler() {
     requestNotificationPermission();
-    // Check every minute
     setInterval(checkNotifications, 60000);
-    // Check immediately on load too
+    setInterval(checkPrayerTimesRefresh, 60000);
     checkNotifications();
+    checkPrayerTimesRefresh();
+}
+
+function canSendAnyNotification() {
+    const webPermitted = ("Notification" in window) && Notification.permission === "granted";
+    const nativeBridge = typeof window.ReactNativeWebView !== 'undefined';
+    return webPermitted || nativeBridge;
 }
 
 function checkNotifications() {
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (!canSendAnyNotification()) return;
 
     const now = new Date();
     const hour = now.getHours();
     const minute = now.getMinutes();
     const dateStr = now.toDateString();
 
-    // Check Verse (09:00)
-    if (hour === 9 && minute >= 0 && minute < 5) { // 5 min window
+    if (hour === 9 && minute >= 0 && minute < 5) {
         const last = localStorage.getItem('lastVerseNotif');
         if (last !== dateStr) {
             const verseEl = document.getElementById('dailyAyahTurkish');
@@ -637,7 +771,6 @@ function checkNotifications() {
         }
     }
 
-    // Check Hadith (18:00)
     if (hour === 18 && minute >= 0 && minute < 5) {
         const last = localStorage.getItem('lastHadithNotif');
         if (last !== dateStr) {
@@ -648,35 +781,25 @@ function checkNotifications() {
         }
     }
 
-    // Check Prayer Times
-    if (state.prayerTimes) {
+    if (state.prayerTimes && typeof window.ReactNativeWebView === 'undefined') {
         const currentHm = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        const prayers = {
-            'Sabah': state.prayerTimes.fajr,
-            'Öğle': state.prayerTimes.dhuhr,
-            'İkindi': state.prayerTimes.asr,
-            'Akşam': state.prayerTimes.maghrib,
-            'Yatsı': state.prayerTimes.isha
-        };
-
-        // Unique key for THIS prayer time today
+        const prayers = getPrayerNotificationMap();
         const lastPrayerKey = `lastPrayerNotif_${dateStr}_${currentHm}`;
 
-        // Only check if we haven't sent ANY prayer notification this minute to avoid duplicates if loop runs fast
-        // But loop runs generally once a minute. We need to check if we already notified for THIS time.
-
-        for (const [name, time] of Object.entries(prayers)) {
-            if (time === currentHm) {
-                if (!localStorage.getItem(lastPrayerKey)) {
-                    sendNotification(`${name} Vakti Girdi 🕌`, "Haydi felaha! Namaz vakti girdi.");
-                    localStorage.setItem(lastPrayerKey, 'sent');
-                }
+        for (const [name, prayer] of Object.entries(prayers)) {
+            if (prayer.time === currentHm && !localStorage.getItem(lastPrayerKey)) {
+                sendNotification(`${name} Vakti Girdi 🕌`, prayer.message);
+                localStorage.setItem(lastPrayerKey, 'sent');
             }
         }
     }
 }
 
 function sendNotification(title, body) {
+    if (typeof window.ReactNativeWebView !== 'undefined') {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'notify', title, body }));
+    }
+
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.ready.then(reg => {
             reg.showNotification(title, {
@@ -687,7 +810,10 @@ function sendNotification(title, body) {
                 data: { url: window.location.href }
             });
         });
-    } else {
+        return;
+    }
+
+    if ("Notification" in window && Notification.permission === "granted") {
         new Notification(title, {
             body: body,
             icon: 'logo.png'
@@ -720,8 +846,6 @@ function shareContent(type) {
         currentShareContent = `${titleEl.textContent}\n\n"${text}"\n${ref}`;
         currentShareUrl = window.location.href; // Could be a deep link if supported
     } else if (type === 'hadith') {
-        titleEl.textContent = 'AKŞAMIN HADİSİ'; // Changed title as per request "Akşamın Hadisi" for notification, but card says "Günün Hadisi". Let's stick to consistent UI title. UI says "Günün Hadisi". Notification says "Akşamın Hadisi". Let's use UI title here.
-        // Actually user prompt said: Notification Title: 'Akşamın Hadisi'. But for share card, let's keep it 'GÜNÜN HADİSİ' or 'AKŞAMIN HADİSİ' per context. User sees 'GÜNÜN HADİSİ' in the card. Let's use 'GÜNÜN HADİSİ' for share card title to match UI.
         titleEl.textContent = 'GÜNÜN HADİSİ';
         iconEl.textContent = '🌙';
         const text = document.getElementById('dailyHadithText').textContent;
@@ -733,10 +857,7 @@ function shareContent(type) {
         currentShareUrl = window.location.href;
     }
 
-    modal.classList.add('active'); // active class needs to be defined for modal visibility in CSS? 
-    // Wait, I defined .share-card-container styles but I didn't verify if .modal-overlay has .active functionality in style.css.
-    // Usually modal-overlay has display:none and .active makes it flex/block.
-    // existing settings logic uses .active. Let's assume standard modal logic exists.
+    modal.classList.add('active');
     document.getElementById('shareModal').style.display = 'flex';
 }
 
