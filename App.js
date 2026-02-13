@@ -73,6 +73,8 @@ export default function App() {
   const [timezone, setTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'local');
 
   const appStateRef = useRef(AppState.currentState);
+  const hasShownPermissionAlertRef = useRef(false);
+  const isSchedulingRef = useRef(false);
 
   const requestNotificationPermission = useCallback(async () => {
     const settings = await Notifications.getPermissionsAsync();
@@ -85,7 +87,8 @@ export default function App() {
 
     setPermission(current);
 
-    if (current !== 'granted') {
+    if (current !== 'granted' && !hasShownPermissionAlertRef.current) {
+      hasShownPermissionAlertRef.current = true;
       Alert.alert('Bildirim Kapalı', 'Namaz hatırlatmaları için bildirim izni vermeniz gerekir.');
     }
 
@@ -121,29 +124,40 @@ export default function App() {
         throw new Error('Vakit bilgisi alınamadı.');
       }
 
-      setPrayerTimes(data.data.timings);
+      const timings = data?.data?.timings || {};
+      const requiredKeys = Object.values(PRAYER_CONFIG).map((item) => item.key);
+      const missing = requiredKeys.filter((key) => !normalizeHm(timings[key]));
+      if (missing.length > 0) {
+        throw new Error(`Eksik vakit verisi: ${missing.join(', ')}`);
+      }
+
+      setPrayerTimes(timings);
       const nowLocal = new Date();
       setLastSync(nowLocal.toLocaleString('tr-TR'));
       setLastSyncDateKey(nowLocal.toDateString());
       setStatus('Vakitler alındı. Bildirimler planlanıyor...');
     } catch (error) {
-      setStatus('Vakitler alınamadı. İnternet ve konum bilginizi kontrol edin.');
+      const msg = error instanceof Error ? error.message : 'Vakitler alınamadı.';
+      setStatus(`Vakitler alınamadı: ${msg}`);
     } finally {
       setLoading(false);
     }
   }, [city, district]);
 
   const schedulePrayerNotifications = useCallback(async () => {
-    if (!prayerTimes) return;
+    if (!prayerTimes || isSchedulingRef.current) return;
 
-    const perm = await requestNotificationPermission();
-    if (perm !== 'granted') return;
+    isSchedulingRef.current = true;
+    try {
+      const perm = await requestNotificationPermission();
+      if (perm !== 'granted') return;
 
-    await Notifications.cancelAllScheduledNotificationsAsync();
+      await Notifications.cancelAllScheduledNotificationsAsync();
 
-    const now = new Date();
+      const now = new Date();
+      let scheduledCount = 0;
 
-    for (const [name, config] of Object.entries(PRAYER_CONFIG)) {
+      for (const [name, config] of Object.entries(PRAYER_CONFIG)) {
       const raw = prayerTimes[config.key];
       const hm = normalizeHm(raw);
       const prayerDate = toDateForToday(hm);
@@ -163,6 +177,7 @@ export default function App() {
             channelId: 'prayer-reminders',
           },
         });
+        scheduledCount += 1;
       }
 
       if (prayerDate > now) {
@@ -177,10 +192,14 @@ export default function App() {
             channelId: 'prayer-reminders',
           },
         });
+        scheduledCount += 1;
       }
     }
 
-    setStatus('Bugünün namaz bildirimleri planlandı (5 dk önce + vakit anı).');
+      setStatus(`Bugünün namaz bildirimleri planlandı (${scheduledCount} adet).`);
+    } finally {
+      isSchedulingRef.current = false;
+    }
   }, [prayerTimes, requestNotificationPermission]);
 
   useEffect(() => {
