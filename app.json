@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Buğlem",
+    "slug": "buglemm-app",
+    "version": "1.0.5",
+    "orientation": "portrait",
+    "icon": "./assets/web/logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/web/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/web/logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.buglemm.app"
+    },
+    "web": {
+      "favicon": "./assets/web/logo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "8dafb826-ffd6-405c-910c-176fc4bea910"
+      }
+    }
+  }
+}

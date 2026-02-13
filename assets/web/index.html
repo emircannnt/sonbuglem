@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Buğlem - Premium Islamic Assistant</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600&family=Amiri:wght@400;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- PWA -->
+    <!-- <link rel="manifest" href="manifest.json"> (Sunucu gerektirir/Requires server) -->
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+
+<body>
+
+    <!-- ONBOARDING -->
+    <div id="onboarding" class="onboarding">
+        <div class="logo-large">BUĞLEM</div>
+        <div class="logo-subtitle">İSLAMİ YAŞAM ASİSTANI</div>
+
+        <div class="input-group">
+            <label>ADINIZ</label>
+            <input type="text" id="userNameInput" class="premium-input" placeholder="Adınızı giriniz..."
+                autocomplete="off">
+        </div>
+
+        <button class="btn-premium" onclick="completeOnboarding()">BAŞLAYALIM</button>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="app" style="display: none;">
+
+        <!-- HEADER -->
+        <div class="header">
+            <div class="header-top">
+                <div class="icon-btn" onclick="openLocationModal()"><span class="icon">📍</span></div>
+                <div class="logo-small">BUĞLEM</div>
+                <div class="header-icons">
+                    <div class="icon-btn" onclick="toggleNotifications()">
+                        <span id="notifToggle" class="icon">🔔</span>
+                        <div class="notification-badge">3</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="main-content">
+
+            <!-- PAGE: DASHBOARD -->
+            <div id="page-dashboard" class="page active">
+                <!-- HERO SECTION -->
+                <div class="dashboard-hero">
+                    <div class="hero-left">
+                        <img src="logo.png" class="hero-logo-large" alt="Buglem Logo">
+                    </div>
+                    <div class="hero-right">
+                        <div class="hero-main-text">Birlikten güç doğar,<br>güç mazlumu korur.</div>
+                        <div class="hero-sub-text">Mazlumun yanında olmak sözle değil, tercihle olur.</div>
+                        <div class="boycott-tag">Boykota önem ver.</div>
+                    </div>
+                </div>
+
+                <!-- Prayer Times -->
+                <div class="prayer-dashboard">
+                    <div class="prayer-header">
+                        <div class="prayer-location" onclick="openLocationModal()">
+                            📍 <span id="locationName">Konum Seç</span>
+                        </div>
+                        <div class="prayer-date" id="currentDate">Bugün</div>
+                    </div>
+                    <div class="prayer-times-horizontal" id="prayerTimesList">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Daily Content -->
+                <div class="daily-content-row">
+                    <div class="content-card">
+                        <div class="card-header">
+                            <div class="card-title">GÜNÜN AYETİ</div>
+                            <div class="card-icon">📖</div>
+                        </div>
+                        <div class="turkish-text" id="dailyAyahTurkish">Yükleniyor...</div>
+                        <div class="content-reference" id="dailyAyahRef"></div>
+                        <div class="action-row">
+                            <button class="action-btn" onclick="copyContent('ayah')">
+                                <div class="action-icon">📋</div>
+                                <span>Kopyala</span>
+                            </button>
+                            <button class="action-btn" onclick="shareContent('ayah')">
+                                <div class="action-icon">📤</div>
+                                <span>Paylaş</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="content-card">
+                        <div class="card-header">
+                            <div class="card-title">GÜNÜN HADİSİ</div>
+                            <div class="card-icon">📜</div>
+                        </div>
+                        <div class="turkish-text" id="dailyHadithText">Yükleniyor...</div>
+                        <div class="content-reference" id="dailyHadithSource"></div>
+                        <div class="action-row">
+                            <button class="action-btn" onclick="copyContent('hadith')">
+                                <div class="action-icon">📋</div>
+                                <span>Kopyala</span>
+                            </button>
+                            <button class="action-btn" onclick="shareContent('hadith')">
+                                <div class="action-icon">📤</div>
+                                <span>Paylaş</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mood Selector -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">RUH HALİM</div>
+                        <div class="card-icon">✨</div>
+                    </div>
+                    <div class="mood-grid">
+                        <div class="mood-btn" onclick="selectMood('happy', this)" data-mood="happy">
+                            <div class="mood-emoji">😊</div>
+                            <div class="mood-label">Mutlu</div>
+                        </div>
+                        <div class="mood-btn" onclick="selectMood('sad', this)" data-mood="sad">
+                            <div class="mood-emoji">😔</div>
+                            <div class="mood-label">Üzgün</div>
+                        </div>
+                        <div class="mood-btn" onclick="selectMood('worried', this)" data-mood="worried">
+                            <div class="mood-emoji">😟</div>
+                            <div class="mood-label">Endişeli</div>
+                        </div>
+                        <div class="mood-btn" onclick="selectMood('tired', this)" data-mood="tired">
+                            <div class="mood-emoji">😫</div>
+                            <div class="mood-label">Yorgun</div>
+                        </div>
+                        <div class="mood-btn" onclick="selectMood('grateful', this)" data-mood="grateful">
+                            <div class="mood-emoji">🤲</div>
+                            <div class="mood-label">Şükürlü</div>
+                        </div>
+                        <div class="mood-btn" onclick="selectMood('normal', this)" data-mood="normal">
+                            <div class="mood-emoji">😐</div>
+                            <div class="mood-label">Normal</div>
+                        </div>
+                    </div>
+                    <div id="moodResult" class="mood-result">
+                        <div class="turkish-text" id="moodAyah"></div>
+                        <div class="content-reference" id="moodRef"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: ZIKIRMATIK -->
+            <div id="page-zikir" class="page">
+                <div class="tasbih-container">
+                    <div class="tasbih-count-display">
+                        <div class="tasbih-count-number" id="tasbihCount">0</div>
+                        <div class="tasbih-count-label">Zikir Sayısı</div>
+                    </div>
+
+                    <div class="tasbih-main-area">
+                        <div class="tasbih-chain" id="tasbihChain">
+                            <!-- Beads generated by JS -->
+                        </div>
+
+                        <button class="tasbih-btn" onclick="pullBead()">ZİKRET</button>
+
+                        <div class="tasbih-name" id="currentTasbihName" onclick="showZikirSelector()">Sübhanallah</div>
+                    </div>
+
+                    <div class="zikir-controls-row">
+                        <div class="zikir-mode-select">
+                            <span class="mode-btn" onclick="setZikirMode('33')" data-mode="33">33</span>
+                            <span class="mode-btn" onclick="setZikirMode('99')" data-mode="99">99</span>
+                            <span class="mode-btn active" onclick="setZikirMode('infinite')"
+                                data-mode="infinite">∞</span>
+                        </div>
+
+                        <div class="tasbih-controls">
+                            <div class="control-btn" onclick="showZikirSelector()">🔄</div>
+                            <div class="control-btn" onclick="resetTasbih()">🗑️</div>
+                            <div class="control-btn" id="soundToggle" onclick="toggleSound()">🔊</div>
+                            <div class="control-btn" id="vibrationToggle" onclick="toggleVibration()">📳</div>
+                        </div>
+                    </div>
+
+                    <div id="zikirStatsList" class="zikir-stats-horizontal-container">
+                        <!-- JS renders list here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: LIBRARY -->
+            <div id="page-library" class="page">
+                <div class="library-grid">
+                    <div class="library-item" onclick="navigateToLibrary('quran')">
+                        <div class="library-icon">📖</div>
+                        <div class="library-title">Kuran-ı Kerim</div>
+                    </div>
+                    <div class="library-item" onclick="navigateToLibrary('stories')">
+                        <div class="library-icon">📚</div>
+                        <div class="library-title">Kıssalar</div>
+                    </div>
+                    <!-- Future: Dua, Hymns etc. -->
+                    <div class="library-item" onclick="navigateToLibrary('prayers')">
+                        <div class="library-icon">🤲</div>
+                        <div class="library-title">Dualar</div>
+                    </div>
+                    <div class="library-item">
+                        <div class="library-icon">🎧</div>
+                        <div class="library-title">Sesli Kitaplar</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: QURAN READER (Sub-page of Library) -->
+            <div id="page-quran-reader" class="page">
+                <div class="header-top" style="padding: 10px;">
+                    <div class="icon-btn" onclick="backToLibrary()">⬅️</div>
+                    <div class="logo-small" style="font-size: 18px;">Kuran-ı Kerim</div>
+                    <div style="width: 40px;"></div>
+                </div>
+                <div id="quran-container">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
+            <!-- PAGE: STORIES (Sub-page of Library) -->
+            <div id="page-stories" class="page">
+                <div class="header-top" style="padding: 10px;">
+                    <div class="icon-btn" onclick="backToLibrary()">⬅️</div>
+                    <div class="logo-small" style="font-size: 18px;">Peygamber Kıssaları</div>
+                    <div style="width: 40px;"></div>
+                </div>
+                <div id="stories-list-container" class="story-list">
+                    <!-- List -->
+                </div>
+            </div>
+
+            <!-- PAGE: STORY DETAIL -->
+            <div id="page-story-detail" class="page">
+                <div class="header-top" style="padding: 10px;">
+                    <div class="icon-btn" onclick="closeStoryDetail()">⬅️</div>
+                    <div class="logo-small" style="font-size: 16px;" id="detail-title">Başlık</div>
+                    <div style="width: 40px;"></div>
+                </div>
+                <div class="story-detail">
+                    <div id="detail-text" class="story-text"></div>
+                </div>
+            </div>
+
+            <!-- PAGE: PRAYERS (Sub-page of Library) -->
+            <div id="page-prayers" class="page">
+                <div class="header-top" style="padding: 10px;">
+                    <div class="icon-btn" onclick="backToLibrary()">⬅️</div>
+                    <div class="logo-small" style="font-size: 18px;">Dualar</div>
+                    <div style="width: 40px;"></div>
+                </div>
+                <div id="prayers-list-container" class="prayer-list" style="padding: 10px;">
+                    <!-- List Rendered by JS -->
+                </div>
+            </div>
+
+            <!-- PAGE: PRAYER DETAIL -->
+            <div id="page-prayer-detail" class="page">
+                <div class="header-top" style="padding: 10px;">
+                    <div class="icon-btn" onclick="closePrayerDetail()">⬅️</div>
+                    <div class="logo-small" style="font-size: 16px;" id="prayer-detail-title">Başlık</div>
+                    <div style="width: 40px;"></div>
+                </div>
+                <div class="prayer-detail-content" style="padding: 20px; text-align: center;">
+                    <div id="prayer-arabic"
+                        style="font-family: 'Amiri', serif; font-size: 26px; color: var(--gold-primary); margin-bottom: 20px; line-height: 1.8;">
+                    </div>
+                    <div id="prayer-latin"
+                        style="font-size: 14px; color: var(--text-secondary); margin-bottom: 15px; font-style: italic;">
+                    </div>
+                    <div id="prayer-translation"
+                        style="font-size: 16px; color: var(--text-primary); margin-bottom: 30px;"></div>
+                    <div id="prayer-source"
+                        style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+                    </div>
+
+                    <button class="btn-premium" style="margin-top: 30px; width: auto; padding: 10px 30px;"
+                        onclick="copyPrayer()">KOPYALA</button>
+                    <!-- Share button could be added here -->
+                </div>
+            </div>
+
+            <!-- PAGE: SADAKA -->
+            <div id="page-sadaka" class="page">
+                <div class="header-top">
+                    <!-- <div class="icon-btn">⬅️</div> -->
+                    <div class="logo-small">Sadaka Ver</div>
+                    <div style="width: 40px;"></div>
+                </div>
+
+                <div class="sadaka-hero">
+                    <div class="sadaka-hero-left">
+                        <div class="sadaka-title">BİR HAYIR İŞLE</div>
+                        <div class="sadaka-desc">
+                            İyilik yapmak hiç bu kadar kolay olmamıştı. 30 saniyenizi ayırın, reklam gelirinin yarısı
+                            seçtiğiniz kuruma bağışlansın.
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 0 10px;">
+                    <label
+                        style="color: var(--gold-primary); font-size: 11px; margin-left:10px; margin-bottom: 10px; display: block; letter-spacing: 1px;">VAKIF
+                        SEÇİNİZ</label>
+
+                    <div class="foundation-scroll-container" id="foundation-list">
+                        <!-- JS renders cards here -->
+                    </div>
+
+                    <button class="sadaka-btn-large" onclick="watchAdForSadaka()" id="watchAdBtn">
+                        <span style="font-size: 24px;">🎥</span>
+                        <span>VİDEO İZLE VE BAĞIŞLA</span>
+                    </button>
+
+                    <!-- Stats -->
+                    <div class="stat-grid">
+                        <div class="stat-box-modern">
+                            <div class="stat-val" id="total-sadaka-count">0</div>
+                            <div class="stat-lbl">Toplam Bağış</div>
+                        </div>
+                        <div class="stat-box-modern">
+                            <div class="stat-val" id="today-sadaka-count">0</div>
+                            <div class="stat-lbl">Bugünkü Bağış</div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="margin-top: 25px; text-align: center; color: var(--text-muted); font-size: 10px; opacity: 0.6;">
+                        *Bu uygulama üzerinden elde edilen gelirlerin %75'i ilgili kurumlara bağışlanmakta, %25'i
+                        uygulama geliştirmelerine ayrılmaktadır.
+                    </div>
+                </div>
+            </div>
+            <!-- PAGE: PROFILE -->
+            <div id="page-profile" class="page">
+                <div class="profile-header">
+                    <div class="avatar" id="profileAvatar">👤</div>
+                    <h2 class="profile-name" id="profileName">Kullanıcı</h2>
+                    <div class="profile-stats">
+                        <div class="stat-box">
+                            <div class="stat-value" id="totalZikir">0</div>
+                            <div class="stat-label">Zikir</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">5</div>
+                            <div class="stat-label">Gün</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value">3</div>
+                            <div class="stat-label">Sadaka</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 0 20px;">
+                    <div class="settings-list">
+                        <div class="settings-item" onclick="openLocationModal()">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="settings-icon">📍</div>
+                                <div>
+                                    <div style="font-weight: 500;">Konum Ayarları</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Şehir ve İlçe Değiştir</div>
+                                </div>
+                            </div>
+                            <div>➡️</div>
+                        </div>
+
+                        <div class="settings-item" onclick="requestPermissions()">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="settings-icon">🔔</div>
+                                <div>
+                                    <div style="font-weight: 500;">Bildirim İzinleri</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Ezan ve Hatırlatmalar</div>
+                                </div>
+                            </div>
+                            <div>➡️</div>
+                        </div>
+
+                        <div class="settings-item" onclick="resetData()">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="settings-icon">🗑️</div>
+                                <div>
+                                    <div style="font-weight: 500;">Verileri Sıfırla</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Tüm Ayarları Temizle</div>
+                                </div>
+                            </div>
+                            <div style="color: #ff4444;">⚠️</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- BOTTOM NAV -->
+    <div class="bottom-nav">
+        <button class="nav-item active" onclick="navigateTo('dashboard', this)">
+            <span class="nav-icon">🏠</span>
+            <span>Ana Sayfa</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('zikir', this)">
+            <span class="nav-icon">📿</span>
+            <span>Zikirmatik</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('sadaka', this)">
+            <span class="nav-icon">❤️</span>
+            <span>Sadaka</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('library', this)">
+            <span class="nav-icon">📚</span>
+            <span>Kütüphane</span>
+        </button>
+        <button class="nav-item" onclick="navigateTo('profile', this)">
+            <span class="nav-icon">👤</span>
+            <span>Profilim</span>
+        </button>
+    </div>
+
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Permission Modal -->
+    <div id="permissionModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon">🔔</div>
+            <h3 class="modal-title">BİLDİRİMLER</h3>
+            <p class="modal-text">Namaz vakitleri ve günlük hatırlatmalar için bildirim izni vermeniz önerilir.</p>
+            <button class="btn-premium" onclick="requestPermissions()">DEVAM ET</button>
+        </div>
+    </div>
+
+    <!-- Location Modal -->
+    <div id="locationModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-icon">📍</div>
+            <h3 class="modal-title">KONUM SEÇİMİ</h3>
+            <p class="modal-text" style="margin-bottom: 20px;">Namaz vakitleri için il ve ilçe seçiniz.</p>
+
+            <select id="citySelect" class="premium-select" onchange="populateDistricts()"></select>
+            <select id="districtSelect" class="premium-select" disabled></select>
+
+            <button class="btn-premium" onclick="saveManualLocation()">KAYDET</button>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="notificationModal" class="notification-modal">
+        <div class="notification-content">
+            <h3 id="notifTitle" class="modal-title">Bilgi</h3>
+            <p id="notifText" class="modal-text"></p>
+            <button class="btn-premium" style="margin-top: 15px; padding: 10px;"
+                onclick="closeNotification()">Tamam</button>
+        </div>
+    </div>
+
+    <!-- Zikir Selection Modal -->
+    <div id="zikirModalOverlay" class="modal-overlay" onclick="closeZikirSelector()"></div>
+    <div id="zikirSelectionModal" class="selection-modal">
+        <h3 class="modal-title" style="margin-bottom: 20px;">Zikir Seçimi</h3>
+        <div id="zikirOptions">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="js/data.js"></script>
+    <script src="js/stories.js"></script>
+    <script src="js/prayers.js"></script>
+    <script src="js/hadith-data.js"></script>
+    <script src="js/sadaka.js"></script>
+    <script src="js/quran-data.js"></script>
+    <script src="js/transliteration-data.js"></script>
+    <script src="js/logo-data.js"></script>
+    <script src="js/quran.js"></script>
+    <script src="js/html2canvas.min.js"></script>
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal-overlay">
+        <div class="share-card-container">
+            <div class="share-card" id="shareCardContent">
+                <div class="share-header">
+                    <div class="share-icon" id="shareIcon">🌿</div>
+                    <div class="share-title" id="shareTitle">GÜNÜN AYETİ</div>
+                </div>
+                <div class="share-body" id="shareBody">
+                    Loading...
+                </div>
+                <div class="share-footer">
+                    <div class="share-logo">
+                        <img src="logo.png" alt="Logo" style="height: 30px; margin-right: 10px;">
+                        BUĞLEM
+                    </div>
+                </div>
+            </div>
+            <div class="share-actions">
+                <button class="btn-primary" onclick="performShare()">PAYLAŞ</button>
+                <button class="btn-secondary" onclick="closeShareModal()">KAPAT</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>
