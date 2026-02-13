@@ -5,29 +5,39 @@
     "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/web/logo.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/web/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Namaz vakitleri için konum bilgisi kullanılır.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Namaz vakitleri için konum bilgisi kullanılır.",
+        "NSUserTrackingUsageDescription": "Daha iyi uygulama deneyimi için kullanılır."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/web/logo.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.buglemm.app"
-    },
-    "web": {
-      "favicon": "./assets/web/logo.png"
+      "package": "com.buglemm.app",
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "extra": {
       "eas": {
         "projectId": "8dafb826-ffd6-405c-910c-176fc4bea910"
       }
-    }
+    },
+    "plugins": [
+      "expo-notifications"
+    ]
   }
 }

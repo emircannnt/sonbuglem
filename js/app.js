@@ -652,25 +652,33 @@ function checkNotifications() {
     if (state.prayerTimes) {
         const currentHm = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         const prayers = {
-            'Sabah': state.prayerTimes.fajr,
-            'Öğle': state.prayerTimes.dhuhr,
-            'İkindi': state.prayerTimes.asr,
-            'Akşam': state.prayerTimes.maghrib,
-            'Yatsı': state.prayerTimes.isha
+            'Sabah': {
+                time: state.prayerTimes.fajr,
+                message: 'Namaz uykudan daha hayırlıdır!'
+            },
+            'Öğle': {
+                time: state.prayerTimes.dhuhr,
+                message: 'Bir kimse öğle namazının farzından önce dört, farzından sonra da dört rekat sünneti devamlı olarak kılarsa, Allah Teâlâ onu cehenneme haram kılar.'
+            },
+            'İkindi': {
+                time: state.prayerTimes.asr,
+                message: 'Güneş doğmadan ve batmadan önce namaz kılan bir kimse cehenneme girmeyecektir.'
+            },
+            'Akşam': {
+                time: state.prayerTimes.maghrib,
+                message: 'Ümmetim akşam namazını yıldız doğmadan önce kıldıkları sürece fıtrat üzere yaşamaya devam ederler.'
+            },
+            'Yatsı': {
+                time: state.prayerTimes.isha,
+                message: 'Yatsı namazını cemaatle kılan kimse, gece yarısına kadar namaz kılmış gibidir.'
+            }
         };
 
-        // Unique key for THIS prayer time today
         const lastPrayerKey = `lastPrayerNotif_${dateStr}_${currentHm}`;
-
-        // Only check if we haven't sent ANY prayer notification this minute to avoid duplicates if loop runs fast
-        // But loop runs generally once a minute. We need to check if we already notified for THIS time.
-
-        for (const [name, time] of Object.entries(prayers)) {
-            if (time === currentHm) {
-                if (!localStorage.getItem(lastPrayerKey)) {
-                    sendNotification(`${name} Vakti Girdi 🕌`, "Haydi felaha! Namaz vakti girdi.");
-                    localStorage.setItem(lastPrayerKey, 'sent');
-                }
+        for (const [name, prayer] of Object.entries(prayers)) {
+            if (prayer.time === currentHm && !localStorage.getItem(lastPrayerKey)) {
+                sendNotification(`${name} Vakti Girdi 🕌`, prayer.message);
+                localStorage.setItem(lastPrayerKey, 'sent');
             }
         }
     }
