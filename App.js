@@ -24,8 +24,8 @@ const WEB_ASSETS = {
 
     // Large JS Files (Treated as TXT to avoid bundling overhead)
     // We map from .txt (asset) -> to .js (destination)
-    'js/quran-data.js': require('./assets/web/js/quran-data.js'),
-    'js/transliteration-data.js': require('./assets/web/js/transliteration-data.js'),
+    'js/quran-data.js': require('./assets/web/js/quran-data.js.txt'),
+    'js/transliteration-data.js': require('./assets/web/js/transliteration-data.js.txt'),
 };
 
 export default function App() {
